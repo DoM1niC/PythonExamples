@@ -1,0 +1,92 @@
+<!-- Modal -->
+<div class="modal fade" id="modal_register" tabindex="-1" aria-labelledby="registerLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="registerLabel">Registrierung</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="registerForm">
+
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Benutzername</label>
+                        <input type="text" class="form-control" id="username" required name="username"
+                            aria-describedby="usernameHelp">
+                        <div id="usernameHelp" class="form-text"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Passwort</label>
+                        <input type="password" class="form-control" id="password" name="password" minlength="8">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="passwordCheck" class="form-label">Passwort bestätigen</label>
+                        <input type="password" class="form-control" id="passwordCheck" name="passwordCheck">
+                    </div>
+
+                    <div id="alert_register"></div>
+
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Schließen</button>
+                <button disabled id="registerBtn" type="button" class="btn btn-primary">Registrieren</button>
+            </div>
+            <input type="text" class="d-none" id="type" name="type" value="register">
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    $(document).ready(function () {
+
+        $("#registerForm input").keyup(function () {
+            var password = $("#registerForm input[name=password]").val();
+            var passwordCheck = $("#registerForm input[name=passwordCheck]").val();
+
+            if (password === passwordCheck) {
+                $('#registerBtn').prop('disabled', false);
+                $("#alert_register").html('');
+            } else {
+                $('#registerBtn').prop('disabled', true);
+                $("#alert_register").html(' <div class="alert alert-warning" role="alert">Passwörter sind nicht gleich!</div>');
+            }
+        });
+
+        $('#registerBtn').click(function () {
+            var data = $('#registerForm').serializeArray();
+            $('#registerBtn').prop('disabled', true);
+
+            $.ajax({
+                url: "api",
+                method: "POST",
+                data: data,
+                statusCode: {
+                    500: function (response) {
+                        $('#registerBtn').prop('disabled', false);
+                        $("#alert_register").html(' <div class="alert alert-danger" role="alert">Interner Fehler!</div>');
+                    },
+                    400: function (response) {
+                        $("#alert_register").html(' <div class="alert alert-danger" role="alert">Alle Felder befüllen!</div>');
+                        $('#registerBtn').prop('disabled', false);
+                    },
+                    403: function (response) {
+                        $("#alert_register").html(' <div class="alert alert-danger" role="alert">Benutzername vergeben!</div>');
+                        $('#registerBtn').prop('disabled', false);
+                    },
+                    404: function (response) {
+                        $('#registerBtn').prop('disabled', false);
+                    }
+                },
+                success: function (data) {
+                    $('#registerBtn').prop('disabled', true);
+                    $("#registerForm input").prop("disabled", true);
+                    $("#alert_register").html(' <div class="alert alert-success" role="alert">Registration Erfolgreich!</div>');
+                }
+            });
+
+        });
+    });  
+</script>

@@ -1,0 +1,92 @@
+<!-- Modal -->
+<div class="modal fade" id="modal_login" tabindex="-1" aria-labelledby="loginLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="loginLabel">Anmeldung</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="loginForm">
+
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Benutzername</label>
+                        <input type="text" class="form-control" id="username" name="username"
+                            aria-describedby="usernameHelp">
+                        <div id="usernameHelp" class="form-text"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Passwort</label>
+                        <input type="password" class="form-control" id="password" name="password">
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="staylogged" name="staylogged">
+                        <label class="form-check-label" for="staylogged">Angemeldet bleiben?</label>
+                    </div>
+
+                    <div id="alert_login"></div>
+
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Schließen</button>
+                <button id="loginBtn" type="button" class="btn btn-primary">Anmelden</button>
+            </div>
+            <input type="text" class="d-none" id="type" name="type" value="login">
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    $(document).ready(function () {
+        $('#loginBtn').click(function () {
+            var data = $('#loginForm').serializeArray();
+            $('#loginBtn').prop('disabled', true);
+
+            $.ajax({
+                url: "api",
+                method: "POST",
+                data: data,
+                statusCode: {
+                    500: function (response) {
+                        $('#loginBtn').prop('disabled', false);
+                        $("#alert_login").html('<div class="alert alert-danger" role="alert">Interner Fehler!</div>');
+                        console.log(data);
+                    },
+                    400: function (response) {
+                        $("#alert_login").html('<div class="alert alert-danger" role="alert">Alle Felder befüllen!</div>');
+                        $('#loginBtn').prop('disabled', false);
+                    },
+                    403: function (response) {
+                        $("#alert_login").html('<div class="alert alert-danger" role="alert">Anmeldedaten falsch!</div>');
+                        $('#loginBtn').prop('disabled', false);
+                    },
+                    404: function (response) {
+                        $('#loginBtn').prop('disabled', false);
+                    }
+                },
+                    success: function (data) {
+                        $('#loginBtn').prop('disabled', true);
+                        $("#loginForm input").prop("disabled", true);
+                        $("#alert_login").html('<div class="alert alert-success" role="alert">Anmeldung Erfolgreich</div>');
+                        setTimeout(() => {
+                            location.reload();
+                        }, 700);
+                    }
+                });
+
+        });
+        $('#logout').click(function () {
+            $.ajax({
+                url: "api",
+                method: "POST",
+                data: { type: "logout" },
+                success: function () {
+                    location.reload();
+                }
+            });
+        });
+    });  
+</script>

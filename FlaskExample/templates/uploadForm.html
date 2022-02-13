@@ -1,0 +1,52 @@
+{% if uploadForm %}
+<form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data">
+    <div class="form-group mb-3">
+        <div class="custom-file">
+            <input type="file" name="uploadFile" id="uploadFile" />
+            <label id="file_input_label" class="custom-file-label" for="image">Datei
+                auswählen</label>
+            <div class="progress">
+                <div class="progress-bar progress-bar-striped bg-primary" role="progressbar"
+                    aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+            <div id="targetLayer" style="display:none;"></div>
+        </div>
+    </div>
+    <button id="uploadBtn" class="btn btn-primary" type=submit value=Upload>Datei hochladen</button>
+</form>
+<div id="loader-icon" style="display:none;"></div>
+<div id="link" style="display:none;"></div>
+
+<script>
+    $(document).ready(function () {
+        $('#uploadForm').submit(function (event) {
+            if ($('#uploadFile').val()) {
+                event.preventDefault();
+                $('#loader-icon').show();
+                $('#targetLayer').hide();
+                $(this).ajaxSubmit({
+                    target: '#targetLayer',
+                    beforeSubmit: function () {
+                        $('.progress-bar').width('50%');
+                    },
+                    uploadProgress: function (event, position, total, percentageComplete) {
+                        $('.progress-bar').animate({
+                            width: percentageComplete + '%'
+                        }, {
+                            duration: 1000
+                        });
+                    },
+                    success: function (data) {
+                        $('#loader-icon').hide();
+                        $('#targetLayer').show();
+                        $('#targetLayer').append(data.htmlresponse);
+                    },
+                    resetForm: true
+                });
+            }
+            return false;
+        });
+    });
+</script>
+
+{% endif %}
