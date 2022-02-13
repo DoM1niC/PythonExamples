@@ -8,35 +8,45 @@ from pysondb import db
 app = Flask(__name__)
 
 ALLOWED_EXTENSIONS = set(["txt", "jpg", "png", "zip", "mp4"])
-global databaseFile
+global databaseFile, usersDB
 databaseFile = "data.json"
+usersDB = "users.json"
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def jsondb_get():
+def jsondb_getall(databaseFile):
     database=db.getDb(databaseFile)
     return database.getAll()
 
-def jsondb_insert(data):
+def jsondb_get(databaseFile, data):
+    database=db.getDb(databaseFile)
+    return database.getByQuery(data)
+
+def jsondb_insert(databaseFile, data):
     database=db.getDb(databaseFile)
     return database.add(data)
 
-def jsondb_delete(id):
+def jsondb_delete(databaseFile, id):
     database=db.getDb(databaseFile)
     return database.deleteById(id)
 
-def jsondb_update(id, data):
+def jsondb_update(databaseFile, id, data):
     database=db.getDb(databaseFile)
     return database.updateById(id,data)
 
 def index(name):
-    userSession = request.cookies.get('UserToken')
-    user = request.cookies.get('User')
-    if not (userSession):
-        userSession = None
-
-    return render_template("index.html", name=name, userSession=userSession, user=user)
+    UserToken = request.cookies.get('UserToken')
+    User = request.cookies.get('User')
+    UserData = jsondb_get(usersDB, { "username": User, "token": UserToken} )
+    if UserToken and User:
+        try:
+            UserToken = UserData[0]["token"]
+            User = UserData[0]["name"]    
+        except KeyError:
+            UserToken = False
+            User = False
+    return render_template("index.html", name=name, userSession=UserToken, user=User)
 
 
 def form():
@@ -62,41 +72,64 @@ def api():
 
     match methode:
         case "GET":
-            return jsonify(jsondb_get())
+            return jsonify(jsondb_getall())
 
         case "POST":
             type = data["type"]
+
             match type:
                 case "register":
+                    name = data["name"]
                     username = data["username"]
                     password = data["password"]
-                    if username == "" or password == "":
+
+                    if username == "" or password == "" or name == "":
                         return abort(400)
-                    return ""
+                    checkUsername = jsondb_get(usersDB, { "username": username } )
+                    if checkUsername and checkUsername[0]["username"] == username:
+                        return abort(403)
+                    else:
+                        data = { "name": name, "username": username, "password": password, "token": secrets.token_urlsafe(32), "state": True }
+                        jsondb_insert(usersDB, data)
+                        return ""
 
                 case "login":
                     username = data["username"]
                     password = data["password"]
-                    if username == "" or password == "":
-                        return abort(400)
-                    resp = make_response()
-                    
+
                     try:
                         staylogged = data["staylogged"]
+             
+                    except KeyError:
+                        staylogged = False
+    
+                    data = {"username": username, "password": password}
+
+                    if username == "" or password == "":
+                        return abort(400)
+                        
+                    resp = make_response()
+                    getAuth = jsondb_get(usersDB, data)
+
+                    if (getAuth and getAuth[0]["password"] == password):
+
                         if staylogged:
                             resp.set_cookie('User', username, 2147483647, "/")
-                            resp.set_cookie('UserToken', secrets.token_urlsafe(32), 2147483647,"/")
-                        return resp
-                    except KeyError as e:
-                            resp.set_cookie('User', username, None, "/")
-                            resp.set_cookie('UserToken', secrets.token_urlsafe(32), None,"/")
+                            resp.set_cookie('UserToken', getAuth[0]["token"], 2147483647,"/")
                             return resp
-                            
+                        else:
+                            resp.set_cookie('User', username, None, "/")
+                            resp.set_cookie('UserToken', getAuth[0]["token"], None,"/")
+                            return resp
+                    else:
+                        return abort(403)
+                        
                 case "logout":
                     resp = make_response()
                     resp.delete_cookie('User')
                     resp.delete_cookie('UserToken')
                     return resp
+
                 case "add":
                     name = data["name"]
                     data = {"name":name,"state":True}
