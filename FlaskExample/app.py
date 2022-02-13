@@ -133,8 +133,7 @@ def api():
                         return abort(403)
                         
                 case "logout":
-                    logout()
-                    return ""
+                    return logout()
 
                 case "add":
                     name = data["name"]
