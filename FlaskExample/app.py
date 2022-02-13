@@ -36,16 +36,18 @@ def jsondb_update(databaseFile, id, data):
     return database.updateById(id,data)
 
 def index(name):
-    UserToken = request.cookies.get('UserToken')
-    User = request.cookies.get('User')
-    UserData = jsondb_get(usersDB, { "username": User, "token": UserToken} )
-    if UserToken and User:
-        try:
-            UserToken = UserData[0]["token"]
-            User = UserData[0]["name"]    
-        except KeyError:
-            UserToken = False
-            User = False
+    UserTokenCookie = request.cookies.get('UserToken')
+    UserCookie = request.cookies.get('User')
+    UserData = jsondb_get(usersDB, { "username": UserCookie, "token": UserTokenCookie} )
+    if UserTokenCookie and UserCookie and UserData:
+        UserToken = UserData[0]["token"]
+        User = UserData[0]["name"]
+        if UserData and UserToken != UserTokenCookie and User != UserCookie:
+            logout()
+    else:
+        logout()
+        UserToken = False
+        User = False
     return render_template("index.html", name=name, userSession=UserToken, user=User)
 
 
@@ -65,6 +67,12 @@ def upload():
     else:
         msg  = 'Invalid File Format'
     return jsonify({'htmlresponse': render_template('response.html', msg=msg, uploaded_file=filename)})
+
+def logout():
+    resp = make_response()
+    resp.delete_cookie('User')
+    resp.delete_cookie('UserToken')
+    return resp
 
 def api():
     data = request.form
@@ -125,10 +133,8 @@ def api():
                         return abort(403)
                         
                 case "logout":
-                    resp = make_response()
-                    resp.delete_cookie('User')
-                    resp.delete_cookie('UserToken')
-                    return resp
+                    logout()
+                    return ""
 
                 case "add":
                     name = data["name"]
